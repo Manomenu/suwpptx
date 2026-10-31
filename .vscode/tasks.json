@@ -1,0 +1,37 @@
+{
+    // Each task only calls a script of scripts/.internal: nothing is duplicated here.
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "check --quick",
+            "type": "shell",
+            "command": "bash scripts/.internal/check.sh --quick",
+            "group": { "kind": "test", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        },
+        {
+            "label": "check (full gate)",
+            "type": "shell",
+            "command": "bash scripts/.internal/check.sh",
+            "group": "test",
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        },
+        {
+            "label": "e2e",
+            "type": "shell",
+            "command": "bash scripts/.internal/e2e.sh",
+            "group": "test",
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        },
+        {
+            "label": "logs",
+            "type": "shell",
+            "command": "bash scripts/.internal/logs.sh",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        }
+    ]
+}

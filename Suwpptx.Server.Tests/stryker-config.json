@@ -1,0 +1,11 @@
+{
+  "stryker-config": {
+    "project": "Suwpptx.Server.csproj",
+    "since": { "enabled": true, "target": "master" },
+    "test-runner": "mtp",
+    "concurrency": 1,
+    "mutate": ["**/*.cs", "!**/Program.cs"],
+    "reporters": ["progress", "html"],
+    "thresholds": { "high": 80, "low": 60, "break": 0 }
+  }
+}

@@ -1,0 +1,117 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CI: "1"
+  NODE_VERSION: 24.11.0
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.11
+        env:
+          POSTGRES_USER: suwpptx
+          POSTGRES_PASSWORD: suwpptx
+          POSTGRES_DB: suwpptx
+        ports:
+          - 5543:5432
+        options: >-
+          --health-cmd "pg_isready -U suwpptx -d suwpptx"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install gitleaks and shellcheck (pinned, checksum verified), so the gate never skips them
+        # In the runner's temp folder: the repository guards treat any untracked file as part of the repo.
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl -sSfL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum --check
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo install gitleaks /usr/local/bin/gitleaks
+          curl -sSfL -o shellcheck.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  shellcheck.tar.xz" | sha256sum --check
+          tar -xJf shellcheck.tar.xz
+          sudo install shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+      - name: The gate
+        run: bash scripts/.internal/check.sh
+
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.11
+        env:
+          POSTGRES_USER: suwpptx
+          POSTGRES_PASSWORD: suwpptx
+          POSTGRES_DB: suwpptx
+        ports:
+          - 5543:5432
+        options: >-
+          --health-cmd "pg_isready -U suwpptx -d suwpptx"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies and the browser
+        run: |
+          corepack enable
+          cd Suwpptx.Web
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+      - name: Browser tests
+        run: bash scripts/.internal/e2e.sh
+      - name: Keep the report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-report
+          path: .artifacts/e2e
+          if-no-files-found: ignore
+
+  build:
+    needs: [test, e2e]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build both images, start the stack and smoke-test it (nothing is published, the registry is project-specific)
+        run: |
+          docker compose --profile db up -d --build --wait
+          bash scripts/.internal/smoke.sh http://127.0.0.1:8200
+      - name: Logs on failure
+        if: failure()
+        run: docker compose --profile db logs
+      - name: Stop the stack
+        if: always()
+        run: docker compose --profile db down --remove-orphans --volumes

@@ -1,0 +1,40 @@
+{
+    // VS Code glue only: which formatter owns which language, where tools look, what the explorer hides or folds.
+    // No style rules here (indent, line width, quotes, line endings): they live in .editorconfig, .csharpierrc.json
+    // and Suwpptx.Web/.prettierrc.json, so Rider and VS Code agree; VsCodeSettingsTests checks it.
+    "editor.formatOnSave": true,
+    "[csharp]": { "editor.defaultFormatter": "csharpier.csharpier-vscode" },
+    "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "eslint.workingDirectories": ["Suwpptx.Web"],
+    "prettier.prettierPath": "Suwpptx.Web/node_modules/prettier",
+    "tailwindCSS.classFunctions": ["cn", "cva"],
+    "dotnet.defaultSolution": "Suwpptx.slnx",
+    "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
+    "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "fullSolution",
+    "dotnet.testWindow.useTestingPlatformProtocol": true,
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true,
+        "**/TestResults": true,
+        "**/StrykerOutput": true,
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/*.tsbuildinfo": true,
+        ".artifacts": true
+    },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "README.md": "AGENTS.md, CLAUDE.md, TODO.md, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml, .env.example",
+        "Suwpptx.slnx": "global.json, nuget.config, BannedSymbols.txt, Directory.Build.props, Directory.Build.rsp, Directory.Packages.props, .csharpierrc.json",
+        "*.csproj": "packages.lock.json, stryker-config.json",
+        "appsettings.json": "appsettings.*.json",
+        "package.json": "pnpm*, .npm*, eslint*, .eslint*, prettier*, .prettier*, knip.json, tsconfig*.json, vite.config.ts, index.html, components.json",
+        "*.ts": "${capture}.js, ${capture}.*.ts",
+        "*.tsx": "${capture}.ts, ${capture}.*.ts, ${capture}.*.tsx"
+    }
+}

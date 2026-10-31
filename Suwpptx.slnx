@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Suwpptx.Server/">
+    <Project Path="Suwpptx.Server/Suwpptx.Server.csproj" />
+    <Project Path="Suwpptx.Server.Tests/Suwpptx.Server.Tests.csproj" />
+  </Folder>
+</Solution>
