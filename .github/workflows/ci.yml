@@ -160,8 +160,11 @@ jobs:
           SUWPPTX_APP_ZIP="$(cygpath -u "$GITHUB_WORKSPACE/release/suwpptx-win-x64.zip")"
           export SUWPPTX_MARKETPLACE="$PWD"
           export SUWPPTX_NO_SHORTCUT=1
+          # Why: GitHub's bash runs with -e, which would stop the step at exit code 3 before it is checked below
+          set +e
           bash install.sh 2>&1 | tee "$RUNNER_TEMP/install.log"
           code="${PIPESTATUS[0]}"
+          set -e
           # 3 = Python is missing, which this job does not need; any other non-zero code is a failure.
           if [ "$code" != 0 ] && [ "$code" != 3 ]; then
               echo "install.sh exited with $code" >&2
