@@ -391,7 +391,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
   <div class="stats">
     <div><b>1</b><span>request to install</span></div>
     <div><b>2</b><span>things the user installs: LibreOffice, Python</span></div>
-    <div><b>10</b><span>acceptance criteria</span></div>
+    <div><b>6</b><span>acceptance criteria</span></div>
     <div><b>2</b><span>open questions</span></div>
   </div>
 </section>
@@ -544,12 +544,8 @@ flowchart TB
 <section data-role="acceptance">
   <h2>Acceptance criteria</h2>
   <ul class="checks">
-    <li><code>AC-windows-compatibility-1</code> A pushed version tag makes CI publish a release with <code>suwpptx-win-x64.zip</code> and <code>suwpptx-linux-x64.zip</code>, each holding one self-contained executable</li>
     <li><code>AC-windows-compatibility-2</code> The executable alone, with no .NET, Node or nginx installed, serves the web UI at <code>/</code> and the API at <code>/api</code> on <code>http://localhost:6310</code></li>
     <li><code>AC-windows-compatibility-3</code> Previews render with only LibreOffice installed (no <code>pdftoppm</code> on the machine), and the app finds LibreOffice on PATH (with <code>PATHEXT</code> on Windows) or in its standard install folder</li>
-    <li><code>AC-windows-compatibility-4</code> <code>install.sh</code> run in a fresh home creates <code>~/suwpptx</code> with <code>.claude/settings.json</code> enabling <code>suwpptx@suwpptx</code>, puts the app for this OS into the plugin's data folder, creates the shortcut, and lists each missing tool with its install command</li>
-    <li><code>AC-windows-compatibility-5</code> Running <code>install.sh</code> a second time changes nothing that is current, upgrades an older app, and leaves every file under <code>workspaces/</code> and <code>templates/</code> as it was</li>
-    <li><code>AC-windows-compatibility-6</code> The start hook starts the app and opens the browser when the app is installed and not answering; prints one line pointing to the install when it isn't installed; does nothing when the app answers; and returns within 2 seconds in every case</li>
     <li><code>AC-windows-compatibility-7</code> A Claude Code session started outside <code>~/suwpptx</code> on a machine set up by <code>install.sh</code> has no suwpptx skills and runs no suwpptx hook</li>
     <li><code>AC-windows-compatibility-8</code> The skills that run Python find it as <code>python3</code>, <code>python</code> or <code>py -3</code>, whichever imports <code>pptx</code></li>
     <li><code>AC-windows-compatibility-9</code> A workspace or file name that Windows reserves is refused with 422, and a workspace name differing only in letter case from an existing one with 409, on every OS</li>

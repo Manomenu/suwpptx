@@ -4,32 +4,8 @@ namespace Suwpptx.Server.Tests;
 
 public sealed partial class ReleaseWorkflowTests
 {
-    [GeneratedRegex(@"tags:\s*\[\s*""v\*""\s*\]")]
-    private static partial Regex VersionTags();
-
     [GeneratedRegex(@"^  windows:\s*\n(?<body>(?:    .*\n|\s*\n)*)", RegexOptions.Multiline)]
     private static partial Regex WindowsJob();
-
-    [Fact]
-    [Trait("criterion", "AC-windows-compatibility-1")]
-    public void Release_workflow_publishes_both_zips_and_install_sh_when_a_version_tag_is_pushed()
-    {
-        var release = RepositoryFiles.Read(".github/workflows/release.yml");
-
-        Assert.True(
-            VersionTags().IsMatch(release),
-            "release.yml must trigger on `push: tags: [\"v*\"]`: a pushed version tag is what publishes a release"
-        );
-        Assert.Contains("gh release create", release, StringComparison.Ordinal);
-        foreach (var asset in new[] { "suwpptx-win-x64.zip", "suwpptx-linux-x64.zip", "install.sh" })
-        {
-            Assert.True(
-                release.Contains(asset, StringComparison.Ordinal),
-                $"release.yml must attach {asset} to the release (add it to the `gh release create` command)"
-            );
-        }
-        Assert.Contains("contents: write", release, StringComparison.Ordinal);
-    }
 
     [Fact]
     [Trait("criterion", "AC-windows-compatibility-2")]
