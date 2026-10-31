@@ -13,5 +13,5 @@ First check that the `mtp` runner fills `coveredBy` per test.
 ## When the first fake of an outside service appears
 
 The first fake in tests (WireMock for an external API, a mail catcher, e2e seed data) brings a
-`test-environment/` folder with its own compose file, scripts and `.just/test-environment.just`;
-`db.sh` moves there. Until then the gate needs only the one PostgreSQL container from `db.sh`.
+`test-environment/` folder with its own compose file, scripts and `.just/test-environment.just`.
+Until then the tests use real temp folders and a real LibreOffice.

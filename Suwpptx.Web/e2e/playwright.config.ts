@@ -1,17 +1,19 @@
-// End-to-end tests: a real browser against the real server and database.
-// scripts/.internal/e2e.sh prepares an empty database and runs them. They start their own server and web app on
-// their own ports (checkout-env.sh), so the ones you run by hand on 6310/3310 and your local data stay untouched.
+// End-to-end tests: a real browser against the real server over a real folder.
+// scripts/.internal/e2e.sh prepares an empty root folder and runs them. They start their own server and web app on
+// their own ports (checkout-env.sh), so the ones you run by hand on 6310/3310 and your own folder stay untouched.
+import { resolve } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 const SERVER_PORT = Number(process.env["E2E_SERVER_PORT"] ?? 6311);
 const WEB_PORT = Number(process.env["E2E_WEB_PORT"] ?? 3311);
-const DATABASE = process.env["E2E_DATABASE"] ?? "suwpptx_e2e";
+// The root folder the server works on, empty at the start of a run (e2e.sh).
+const ROOT_FOLDER = resolve(import.meta.dirname, process.env["E2E_ROOT"] ?? "../../.artifacts/e2e/root");
 
 export default defineConfig({
     // The tests live next to the code they check (src/notes/NotesScreen.e2e.ts by NotesScreen.tsx).
     testDir: "../src",
     testMatch: "**/*.e2e.ts",
-    // One database for the run, so tests that create data would see each other's in parallel.
+    // One root folder for the run, so tests that create data would see each other's in parallel.
     workers: 1,
     // On CI a failure is retried once, only to tell a steady failure from a flaky one in the report. A test that
     // passes on the retry still fails the run: flaky is a bug, in the test or in the app, never a pass.
@@ -34,9 +36,9 @@ export default defineConfig({
             url: `http://127.0.0.1:${SERVER_PORT}/api/health`,
             env: {
                 ASPNETCORE_URLS: `http://127.0.0.1:${SERVER_PORT}`,
-                ConnectionStrings__Default:
-                    process.env["E2E_CONNECTION_STRING"] ??
-                    `Host=127.0.0.1;Port=5543;Database=${DATABASE};Username=suwpptx;Password=suwpptx`,
+                Folder__Root: ROOT_FOLDER,
+                // Small, so the over-the-limit upload test needs 6 MB, not 2 GB.
+                Folder__UploadLimitMegabytes: "5",
             },
             reuseExistingServer: false,
             timeout: 60_000,

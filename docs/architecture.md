@@ -6,21 +6,21 @@ One line per top-level path (at most 300 characters each). `RepositoryLayoutTest
 lines: a new top-level folder needs its line here, a deleted one loses it.
 
 - `Suwpptx.slnx` — the .NET solution: the server and its tests.
-- `Suwpptx.Server/` — the HTTP API (ASP.NET Core minimal APIs, Npgsql, Dapper with hand-written SQL). One folder and namespace per feature: `Api/` wires the routes, `Notes/` is the example feature, `Health/` checks the database, `Database/` is the pool and the grate migrations.
-- `Suwpptx.Server/Database/Migrations/up/` — numbered SQL migrations `NNNN_what_it_does.sql`, applied at start-up by grate and never edited afterwards.
-- `Suwpptx.Server.Tests/` — xUnit v3 tests against a real PostgreSQL. Mirrors the server's folders; the root holds the repository guards (layers, project graph, naming, comments, pragmas, AGENTS.md size, unused types).
-- `Suwpptx.Web/` — the web app (React 19, shadcn/ui, Tailwind 4, Vite, TypeScript strict, pnpm). A folder per feature under `src/` (`notes/` is the example); `src/design/` is the shared design system (shadcn components, `cn`); `src/api/` the HTTP client and the generated `openapi.d.ts`.
-- `compose.yaml` — the whole stack on a laptop from the same Dockerfiles: db (profile `db`), server, web; everything configured from `.env` (`.env.example`) with ASP.NET names (`Section__Key`); only web publishes a port (8200).
+- `Suwpptx.Server/` — the local HTTP API over the root folder (ASP.NET Core minimal APIs). A folder per feature: `Api/` wires routes, `Workspaces/` is the pattern, `Templates/`, `Previews/` (LibreOffice), `Changes/` (live updates), `Health/`, `Folder/` (the root folder, sandboxed).
+- `Suwpptx.Server.Tests/` — xUnit v3 tests on real temp folders and a real LibreOffice. Mirrors the server's folders; the root holds the repository guards (layers, project graph, naming, comments, pragmas, AGENTS.md size, unused types).
+- `Suwpptx.Web/` — the web app (React 19, shadcn/ui, Tailwind 4, Vite, TypeScript strict, pnpm). A folder per feature under `src/` (workspaces, templates, the viewer); `src/design/` is the shared design system (shadcn components, `cn`); `src/api/` the HTTP client and the generated `openapi.d.ts`.
+- `compose.yaml` — the whole stack on a laptop from the same Dockerfiles: server and web; the server mounts the root folder; settings from `.env` (`.env.example`) with ASP.NET names (`Section__Key`); only web publishes a port (`127.0.0.1:8200`).
 - `Suwpptx.Server/Dockerfile`, `Suwpptx.Web/Dockerfile` — the two images (pinned bases, locked restore, build context is the repo root); the web image is nginx serving the build and proxying `/api` to the server.
 - `.dockerignore` — keeps `node_modules`, `bin`, `obj` and `.env` out of the build context.
 - `.github/` — `workflows/ci.yml`: the gate (`test`), the browser tests (`e2e`), and the images built and smoke-tested (`build`); nothing is published, the registry is project-specific.
 - `.vscode/` — the editor's glue, shared: recommended extensions, formatter per language, file nesting, debug launch, tasks that call `scripts/.internal`. No style rules (they live in `.editorconfig` and the formatters' configs, so Rider agrees).
 - `.githooks/` — `pre-commit` runs gitleaks on what is being committed; `just sync` enables it.
 - `docs/` — documentation for people working on the repo: this map, `development.md`, the specs in `visual/spec/` (their acceptance criteria live as guardrails, see AGENTS.md).
-- `scripts/` — `scripts/.internal/` holds what the gate, the hooks and `just` run: `check.sh`, `db.sh`, `checkout-env.sh`, `api-types.sh`, `e2e.sh`, `smoke.sh`, `logs.sh`, `criteria.sh`, the Claude Code hook scripts.
-- `.claude/` — the committed Claude Code settings: a Stop hook that runs the quick gate, a PreToolUse hook that protects migrations, generated files, and the gate with the lint configs (`ALLOW_GATE_EDIT=1 claude` lifts the last).
+- `scripts/` — `scripts/.internal/` holds what the gate, the hooks and `just` run: `check.sh`, `checkout-env.sh`, `api-types.sh`, `e2e.sh`, `smoke.sh`, `logs.sh`, `criteria.sh`, the Claude Code hook scripts.
+- `.claude/` — the committed Claude Code settings: a Stop hook that runs the quick gate, a PreToolUse hook that protects generated files, lockfiles, and the gate with the lint configs (`ALLOW_GATE_EDIT=1 claude` lifts the last).
+- `plugin/` — the Claude Code plugin `suwpptx` (skills `make`, `brief`, `template` in `skills/*/SKILL.md`); `claude plugin validate ./plugin` checks it.
+- `.claude-plugin/` — `marketplace.json`: the marketplace `suwpptx` that lists the plugin from `./plugin`.
 - `.config/` — `dotnet-tools.json`: the pinned CSharpier.
-- `.just/` — modules of the `justfile` (`just db`).
 
 Files at the root: `criteria.json` (the kinds of guardrail the acceptance criteria check knows), `Directory.Build.props` (strict compiler and analyzers), `Directory.Build.rsp`
 (no idle MSBuild workers), `Directory.Packages.props` (every package version, once),
@@ -32,11 +32,10 @@ Files at the root: `criteria.json` (the kinds of guardrail the acceptance criter
 Each line is a build rule or a test; its message says the fix. Rules live as low as they can: types and analyzers first.
 
 - Web (`check.sh`): tsc strict, eslint (typescript-eslint strict + import boundaries: a feature uses `api` and `design`, `design` uses no feature), vitest, prettier (with Tailwind class order), knip (dead code), `openapi.d.ts` equal to the server's OpenAPI document.
-- Template (`TemplateTests`, template repo only): the placeholder is spelled `Suwpptx` or `suwpptx` only, base ports are whole numbers, port symbols are consistent, nothing that must not be copied is missing from the exclusions.
 - Logs (`HealthEndpointsTests`, `LogsScriptTests`): an error response carries the `traceId` that its log lines carry; `logs.sh` reads them back.
 - Editor (`VsCodeSettingsTests`): `.vscode/settings.json` has no style keys; recommended extension ids are well formed.
 - Images (`ImagePinsTests`): every `FROM` and `image:` carries a version, never `latest`.
-- Containers (`check.sh`): `docker compose config` resolves with and without the `db` profile; `smoke.sh` (run by `just up`) checks `/healthz` and `/api/health` of the running stack.
+- Containers (`check.sh`): `docker compose config` resolves; `smoke.sh` (run by `just up`) checks `/healthz` and `/api/health` of the running stack.
 - Build: analyzers `latest-all`, warnings are errors, unused private members (IDE0051, IDE0052, CA1823), no `#pragma warning disable` (`NoPragmaTests`).
 - Banned APIs (`BannedSymbols.txt`): `DateTime.Now`/`UtcNow`, blocking on tasks, `Thread.Sleep`, `Console`, `Activator`, reflection discovery, `Type.GetType(string)`, Newtonsoft.
 - Layers (`ContractsTests`): a layer uses only the layers below it, every namespace has a layer, every `*Endpoints` class is mapped from `Api`, one per namespace.
@@ -71,7 +70,7 @@ in the top order and has an order of its own inside. Steps, each with the test t
 3. Areas never use each other: siblings on one level are forbidden edges, which `EdgesOf` yields.
    Proof: make `Billing` call `Orders` and see the layer test fail.
 4. What both areas need moves down into a shared feature below the areas (`Notifications/`
-   between the areas and `Database`), and shared features never use an area (the same edges).
+   between the areas and `Folder`), and shared features never use an area (the same edges).
 5. `Api/` stays above all areas and maps each area's routes in a method of its own, so grep finds them.
 6. Web (phase 2): `src/<area>/<feature>/`, an `areaFeature` pattern in the `boundaries` rules of
    `eslint.config.js`, and an explicit policy for any edge between features of one area.

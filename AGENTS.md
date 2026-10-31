@@ -10,18 +10,21 @@ Areas: not used until a second product area appears — how to add them:
 
 | Command | Use it to |
 | --- | --- |
-| `scripts/.internal/check.sh --quick` | during work: build with analyzers, csharpier, server tests against the real database, tsc, eslint, vitest (about 20 seconds) |
+| `scripts/.internal/check.sh --quick` | during work: build with analyzers, csharpier, server tests (real temp folders, a real LibreOffice), tsc, eslint, vitest (about 20 seconds) |
 | `scripts/.internal/check.sh` | before calling a change done: quick, plus prettier, knip, API types, acceptance criteria, compose config, shellcheck, gitleaks |
-| `scripts/.internal/e2e.sh` | after changing anything a user clicks: Playwright against a real server and its own database (not in the gate) |
+| `scripts/.internal/e2e.sh` | after changing anything a user clicks: Playwright against a real server and its own root folder (not in the gate) |
 | `scripts/.internal/logs.sh` (`just logs`) | why did it fail? the last warnings and errors of the newest server log, one line each; `--trace <id>` takes the `traceId` of an error response, `--all`, `--compose`, `-n N` |
 | `scripts/.internal/criteria.sh [AC-<feature>-<n>]` (`just criteria`) | which guardrails keep each acceptance criterion true: id, kind, file:line; fails on an unguarded criterion (the full gate runs it, not `--quick`); `just criteria-update` moves the pinned tool to its newest version |
 | `scripts/.internal/api-types.sh` | after changing a record the API exposes: regenerates `openapi.d.ts` (never edit it) |
-| `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5543` (container `suwpptx-postgres`) |
 | `just fmt` | fix formatting: CSharpier and Prettier |
 | `just up` / `just down` | the container stack on port 8200, with its smoke test |
 
 Humans use `just` (lists every recipe); agents call `scripts/.internal/` directly.
-Ports of this template: server 6310, web 3310, PostgreSQL 5543, compose web 8200.
+Ports of this template: server 6310, web 3310, compose web 8200.
+
+The product: a local web app over one root folder (`~/suwpptx`, or `SUWPPTX_ROOT`) that shows workspaces, renders
+slide previews and offers downloads. Claude Code works on the same files through the plugin in `plugin/` (skills
+`make`, `brief`, `template`); `claude plugin validate ./plugin` checks it, and `claude plugin validate .` the marketplace.
 
 ## Git
 
@@ -41,7 +44,7 @@ The repo grows **only when a real need shows up**; one developer maintains it af
 
 - No dependency, setting, env var, compose service or abstraction "for later": it arrives with
   the first code that uses it. No interface with one implementation; tests use the real thing
-  (a real PostgreSQL) or a recorded answer.
+  (a real temp folder, a real LibreOffice) or a recorded answer; no mocks.
 - No new component (queue, cache, worker, sidecar) without the feature that needs it.
 - When in doubt, leave it out — and say in the change what was left out and why.
 
@@ -73,15 +76,15 @@ test. Not as a checklist, a QA note or a comment. The guardrail names the id whe
 
 | Kind | Where | How it names the id |
 | --- | --- | --- |
-| `server test (xunit)` | `Suwpptx.Server.Tests/<Feature>/*.cs` | `[Trait("criterion", "AC-notes-1")]` on the test |
+| `server test (xunit)` | `Suwpptx.Server.Tests/<Feature>/*.cs` | `[Trait("criterion", "AC-pptx-studio-1")]` on the test |
 | `architecture test (xunit)` | `Suwpptx.Server.Tests/*.cs` (the repository guards) | the same `Trait` |
-| `web test (vitest)` | `Suwpptx.Web/src/**/*.test.ts(x)` | the id in the title: `it("AC-notes-1: …")` |
-| `e2e test (playwright)` | `Suwpptx.Web/src/**/*.e2e.ts` | the id in the title: `test("AC-notes-1: …")` |
-| `lint (eslint)` | `Suwpptx.Web/eslint.config.js` | `// AC-notes-1` on the line above the rule |
-| `type check (tsc)` | `Suwpptx.Web/tsconfig*.json` | `// AC-notes-1` on the line above the option |
-| `lint (.NET analyzer)` | `.editorconfig` | `# AC-notes-1` on its own line above the rule |
-| `banned API` | `BannedSymbols.txt` | the id in the message: `P:…;AC-notes-1 use …` |
-| `build rule` | `Directory.Build.props` | `<!-- AC-notes-1 -->` above the property |
+| `web test (vitest)` | `Suwpptx.Web/src/**/*.test.ts(x)` | the id in the title: `it("AC-pptx-studio-1: …")` |
+| `e2e test (playwright)` | `Suwpptx.Web/src/**/*.e2e.ts` | the id in the title: `test("AC-pptx-studio-1: …")` |
+| `lint (eslint)` | `Suwpptx.Web/eslint.config.js` | `// AC-pptx-studio-1` on the line above the rule |
+| `type check (tsc)` | `Suwpptx.Web/tsconfig*.json` | `// AC-pptx-studio-1` on the line above the option |
+| `lint (.NET analyzer)` | `.editorconfig` | `# AC-pptx-studio-1` on its own line above the rule |
+| `banned API` | `BannedSymbols.txt` | the id in the message: `P:…;AC-pptx-studio-1 use …` |
+| `build rule` | `Directory.Build.props` | `<!-- AC-pptx-studio-1 -->` above the property |
 
 `criteria.sh` runs the suwagent plugin's `vdoc.py criteria`, pinned by commit and SHA-256: it lists
 each criterion with every guardrail, its kind and file:line, and fails on a criterion no guardrail
@@ -104,19 +107,18 @@ them the exact change to make there.
 ## Layout: by feature
 
 The server grows by features: everything that makes one feature work sits in **one folder**
-named in the users' terms (`Notes/`), not by technical kind (`Models/`, `Services/`). `Notes/`
-is the pattern end to end: route (`NoteEndpoints`) → store with hand-written SQL (`NoteStore`)
-→ records (`Note`). Wiring is explicit: `Api/ServerApp.cs` calls every `Map…`.
+named in the users' terms (`Workspaces/`), not by technical kind (`Models/`, `Services/`). The server is
+a local app over a folder. `Workspaces/` is the pattern end to end: route (`WorkspaceEndpoints`) → folder
+work (`WorkspaceFolder`) → records (`Workspace`). Wiring is explicit: `Api/ServerApp.cs` calls every `Map…`.
 
 - A new capability starts as a new folder, or goes into the feature it belongs to — never into
   a shared bucket. Shared code is earned by the second feature that needs it, and is named
-  after what it is (`Database`), not after who uses it.
+  after what it is (`Folder/`), not after who uses it.
 - A new feature gets its layer in `ContractsTests.cs`, a new project its row in
   `ProjectReferencesTests.cs`, a new top-level folder its line in `docs/architecture.md`.
 - Web: one folder per feature under `src/` (screen, logic with its test, `api.ts`), shared look in `src/design/` (shadcn, Tailwind), types from the generated `openapi.d.ts`; rules live in plain `.ts` modules, components only wire them.
-- Schema changes go into a new numbered script in `Database/Migrations/up/`, never an edited one.
-- Records an endpoint sends or receives are a contract with the outside; a row from our own SQL
-  is not. Keep them apart once they differ.
+- Records an endpoint sends or receives are a contract with the outside; a record read from our own
+  folder is not. Keep them apart once they differ.
 - A problem the caller can fix is a ProblemDetails whose `detail` says what to do.
 
 ## What no test can check

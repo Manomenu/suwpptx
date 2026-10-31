@@ -1,4 +1,7 @@
 {
+  "enabledPlugins": {
+    "suwpptx@suwpptx": true
+  },
   "hooks": {
     "Stop": [
       {

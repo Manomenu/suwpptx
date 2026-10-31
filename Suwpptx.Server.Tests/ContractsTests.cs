@@ -11,7 +11,7 @@ public sealed class ContractsTests
 {
     private const string Root = "Suwpptx.Server";
 
-    private static readonly string[] Layers = ["Api", "Notes | Health", "Database"];
+    private static readonly string[] Layers = ["Api", "Workspaces | Templates | Previews | Changes | Health", "Folder"];
 
     internal static readonly Architecture Server = new ArchLoader().LoadAssemblies(typeof(ServerApp).Assembly).Build();
 

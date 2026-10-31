@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The quality gate. CI runs exactly this script; humans run `just check`, hooks run `--quick`.
-#   check.sh --quick   build with analyzers, csharpier, server tests against the real database, tsc, eslint, vitest
+#   check.sh --quick   build with analyzers, csharpier, server tests (real temp folders, a real LibreOffice), tsc, eslint, vitest
 #   check.sh           quick, plus prettier, knip, API types up to date, acceptance criteria guarded, shellcheck and gitleaks
 # Acceptance criteria are not in --quick: the Stop hook runs it after every turn, and a criterion written into
 # a spec before its guardrail (or one the owner must first decide on) would block the agent from stopping to ask.
@@ -55,8 +55,6 @@ build_server() { (cd "$ROOT" && dotnet build Suwpptx.slnx --nologo -v quiet); }
 
 format_server() { (cd "$ROOT" && dotnet tool restore >/dev/null && dotnet csharpier check .); }
 
-local_database() { "$ROOT/scripts/.internal/db.sh" up >/dev/null; }
-
 test_server() { (cd "$ROOT" && dotnet test --solution Suwpptx.slnx --no-build --no-progress); }
 
 shell_scripts() { (cd "$ROOT" && { find scripts -name "*.sh"; echo .githooks/pre-commit; } | xargs shellcheck -S warning); }
@@ -78,7 +76,6 @@ acceptance_criteria() { "$ROOT/scripts/.internal/criteria.sh"; }
 compose_files() {
     cd "$ROOT"
     docker compose config --quiet
-    docker compose --profile db config --quiet
 }
 
 secrets_in_git() {
@@ -90,16 +87,15 @@ secrets_in_git() {
 }
 
 export ROOT
-export -f build_server format_server local_database test_server shell_scripts secrets_in_git web_typecheck web_eslint web_vitest web_prettier web_knip api_types acceptance_criteria compose_files
+export -f build_server format_server test_server shell_scripts secrets_in_git web_typecheck web_eslint web_vitest web_prettier web_knip api_types acceptance_criteria compose_files
 declare_step build "build server (compiler, analyzers, banned APIs, NuGet audit)" 300
 declare_step format "format server (csharpier check)" 120
-if [ -z "${CI:-}" ]; then declare_step postgres "postgres for tests (db.sh up)" 120; fi
-declare_step test "test server (xunit, repository guards, real PostgreSQL)" 600
+declare_step test "test server (xunit, repository guards, real temp folders and LibreOffice)" 600
 declare_step tsc "typecheck Suwpptx.Web (tsc: app, e2e tests, config)" 120
 declare_step eslint "lint Suwpptx.Web (eslint strict + import contracts)" 180
 declare_step vitest "test Suwpptx.Web (vitest)" 180
 if [ "$QUICK" -eq 0 ]; then
-    declare_step compose "compose stack resolves, with and without the db profile (docker compose config)" 120
+    declare_step compose "compose stack resolves (docker compose config)" 120
     declare_step prettier "format Suwpptx.Web (prettier --check)" 120
     declare_step knip "dead code Suwpptx.Web (knip)" 180
     declare_step apitypes "API types up to date (api-types.sh --check)" 300
@@ -131,7 +127,6 @@ GATE_START=$SECONDS
 PIDS=()
 (
     run_step build build_server
-    if [ -z "${CI:-}" ]; then run_step postgres local_database; fi
     run_step test test_server
     if [ "$QUICK" -eq 0 ] && [ -z "${SKIPPED[apitypes]+x}" ]; then run_step apitypes api_types; fi
 ) &

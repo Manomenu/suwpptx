@@ -53,17 +53,6 @@
         "resolved": "2.0.0",
         "contentHash": "iQb2Nm9WqPseGCxPcdeU5qMbWkxtSr1bmnliC7slitx7GOG8cKO2pKZUQ2Yl+DQQZQ7c8qIXe3k+zYE0f96dIA=="
       },
-      "grate.core": {
-        "type": "Transitive",
-        "resolved": "2.1.6",
-        "contentHash": "cL4mXpJR4KgiOYJ/Vg2fD5GWHtjpwfb6Xp6HvkFrrcyTnJIe7x03ldufPXiYzFUelxwL2bmauk2zQfYMF9JNvQ==",
-        "dependencies": {
-          "Dapper": "2.1.79",
-          "Microsoft.Extensions.DependencyInjection": "10.0.10",
-          "Microsoft.Extensions.Hosting": "10.0.10",
-          "Microsoft.Extensions.Logging.Console": "10.0.10"
-        }
-      },
       "JetBrains.Annotations": {
         "type": "Transitive",
         "resolved": "2026.2.0",
@@ -529,30 +518,7 @@
       "suwpptx.server": {
         "type": "Project",
         "dependencies": {
-          "Dapper": "[2.1.89, )",
-          "Microsoft.AspNetCore.OpenApi": "[10.0.12, )",
-          "Npgsql": "[10.0.3, )",
-          "grate.postgresql": "[2.1.6, )"
-        }
-      },
-      "Dapper": {
-        "type": "CentralTransitive",
-        "requested": "[2.1.89, )",
-        "resolved": "2.1.89",
-        "contentHash": "1VjFE664wnxvuhlgP8kS4PeFFF4jqD3VkbIHW6Zlc52zuibgcz5ICnIHcQXlTp6pURpPNGLV0ZpNe5x9KePJnA=="
-      },
-      "grate.postgresql": {
-        "type": "CentralTransitive",
-        "requested": "[2.1.6, )",
-        "resolved": "2.1.6",
-        "contentHash": "krNCVLocLaEKSWkeFVf6JA+MHhh0FnDwdVWQs2O9wvIU35wkyx8hNzUMfo/jJ3CCM6k0eP14e3E3QlADtXE4sg==",
-        "dependencies": {
-          "Dapper": "2.1.79",
-          "Microsoft.Extensions.DependencyInjection": "10.0.10",
-          "Microsoft.Extensions.Hosting": "10.0.10",
-          "Microsoft.Extensions.Logging.Console": "10.0.10",
-          "Npgsql": "10.0.3",
-          "grate.core": "2.1.6"
+          "Microsoft.AspNetCore.OpenApi": "[10.0.12, )"
         }
       },
       "Microsoft.AspNetCore.OpenApi": {
@@ -562,15 +528,6 @@
         "contentHash": "7RnQ/UKn+kK3JDLmTpW+vVqNErWthGPAVAy1aIiBzv4ucQ6g9NFvOJUuT0PHcpvcJxGVxctMxj6t+NESWMrgHQ==",
         "dependencies": {
           "Microsoft.OpenApi": "[2.12.0, 3.0.0)"
-        }
-      },
-      "Npgsql": {
-        "type": "CentralTransitive",
-        "requested": "[10.0.3, )",
-        "resolved": "10.0.3",
-        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
         }
       }
     }

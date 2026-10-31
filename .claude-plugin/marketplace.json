@@ -1,0 +1,12 @@
+{
+  "name": "suwpptx",
+  "description": "Claude Code plugin of Suwpptx Studio",
+  "owner": { "name": "Maniumek" },
+  "plugins": [
+    {
+      "name": "suwpptx",
+      "source": "./plugin",
+      "description": "Build PowerPoint decks from a Suwpptx Studio workspace folder"
+    }
+  ]
+}

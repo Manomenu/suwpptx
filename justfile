@@ -3,14 +3,11 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# The local PostgreSQL — `just db` lists its recipes (.just/db.just)
-mod db '.just/db.just'
-
 [private]
 default:
     @just --list --unsorted
 
-# HTTP API on :6310, rebuilt on every change — needs `just db up`; its JSON log is also written to .artifacts/logs/server.jsonl
+# HTTP API on :6310 over the folder SUWPPTX_ROOT (default ~/suwpptx), rebuilt on every change; needs soffice and pdftoppm on PATH; its JSON log is also written to .artifacts/logs/server.jsonl
 [group('run')]
 server *args:
     mkdir -p .artifacts/logs
@@ -38,23 +35,24 @@ criteria-update:
 web *args:
     cd Suwpptx.Web && { [ -d node_modules ] || pnpm install; } && pnpm dev {{ args }}
 
-# Build and start the whole stack with its own PostgreSQL on http://127.0.0.1:8200 (WEB_PORT in .env); waits until every service is healthy
+# Build and start the whole stack on http://127.0.0.1:8200 (WEB_PORT in .env), working on the folder SUWPPTX_ROOT (default ~/suwpptx); waits until every service is healthy
 [group('infra')]
 up:
-    docker compose --profile db up -d --build --wait
+    mkdir -p "${SUWPPTX_ROOT:-$HOME/suwpptx}"
+    docker compose up -d --build --wait
     ./scripts/.internal/smoke.sh http://127.0.0.1:${WEB_PORT:-8200}
 
-# Stop the stack (images and the database volume stay)
+# Stop the stack (images and the folder with your files stay)
 [group('infra')]
 down:
-    docker compose --profile db down --remove-orphans
+    docker compose down --remove-orphans
 
 # Regenerate the web app's TypeScript types from the server's OpenAPI document (after changing a record the API sends or receives)
 [group('dev')]
 api-types:
     @./scripts/.internal/api-types.sh
 
-# Browser tests (Playwright) against a real server and an empty database of their own; not part of `just check`
+# Browser tests (Playwright) against a real server and an empty root folder of their own; not part of `just check`
 [group('maintenance')]
 e2e *args:
     @./scripts/.internal/e2e.sh {{ args }}
@@ -78,14 +76,8 @@ fmt:
 # Mutation testing of the server code changed since master (Stryker.NET): a surviving mutant is a test that is too weak
 [group('maintenance')]
 mutate:
-    @./scripts/.internal/db.sh up >/dev/null
     dotnet tool restore >/dev/null
     cd Suwpptx.Server.Tests && dotnet tool run dotnet-stryker
-
-# Pack the dotnet new template as a NuGet package into .artifacts/nupkg
-[group('dev')]
-pack-template:
-    dotnet pack pack/Solid.DotnetApp.Template.csproj -o .artifacts/nupkg
 
 # Install tools and packages from the lockfiles, and enable the git hooks
 [group('maintenance')]

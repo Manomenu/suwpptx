@@ -4,16 +4,27 @@ using Microsoft.Extensions.Configuration;
 
 namespace Suwpptx.Server.Tests;
 
-internal sealed class TestApp : WebApplicationFactory<Program>
+internal sealed class TestApp(long? uploadLimitMegabytes = null) : WebApplicationFactory<Program>
 {
+    public string Root { get; } = Directory.CreateTempSubdirectory("suwpptx-test-").FullName;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
-        builder.ConfigureAppConfiguration(
-            (_, configuration) =>
-                configuration.AddInMemoryCollection(
-                    new Dictionary<string, string?> { ["ConnectionStrings:Default"] = TestDatabase.ConnectionString }
-                )
-        );
+        var settings = new Dictionary<string, string?> { ["Folder:Root"] = Root };
+        if (uploadLimitMegabytes is { } limit)
+        {
+            settings["Folder:UploadLimitMegabytes"] = limit.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(settings));
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing && Directory.Exists(Root))
+        {
+            Directory.Delete(Root, recursive: true);
+        }
     }
 }

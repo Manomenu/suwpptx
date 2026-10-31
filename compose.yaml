@@ -1,36 +1,25 @@
 # The whole stack on a laptop, from the same Dockerfiles as production. Every value comes from the environment
-# (.env, see .env.example) with the ASP.NET names (Section__Key); the defaults here make a bare `docker compose
-# --profile db up` work. Only web publishes a port. PostgreSQL is the `db` profile: leave it out and point
-# ConnectionStrings__Default at an external one.
+# (.env, see .env.example) with the ASP.NET names (Section__Key); the defaults here make a bare `docker compose up`
+# work. The app has no database: it works on one folder of the host (SUWPPTX_ROOT, default ~/suwpptx) mounted at
+# /data (:Z relabels it for SELinux hosts; Docker without SELinux ignores it). Only web publishes a port, and only on
+# localhost: the app has no login.
 name: suwpptx
 
 services:
-  db:
-    profiles: ["db"]
-    image: docker.io/library/postgres:17.11
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-suwpptx}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-suwpptx}
-      POSTGRES_DB: ${POSTGRES_DB:-suwpptx}
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
   server:
     image: suwpptx-server:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Suwpptx.Server/Dockerfile
+    # Runs as the host user, not the image's: files the server writes into the mounted folder then belong to the
+    # owner, who keeps opening and editing them outside the app. UID and GID are not exported by most shells: set
+    # them in .env when yours are not 1000. Rootless Podman maps the host user to root inside the container, so
+    # there the host UID cannot read the mount: set SERVER_USER=0:0 in .env (root in the container is you on the host).
+    user: "${SERVER_USER:-${UID:-1000}:${GID:-1000}}"
     environment:
-      ConnectionStrings__Default: ${ConnectionStrings__Default:-Host=db;Port=5432;Database=suwpptx;Username=suwpptx;Password=suwpptx}
-    depends_on:
-      db:
-        condition: service_healthy
-        required: false
+      Folder__Root: /data
+    volumes:
+      - ${SUWPPTX_ROOT:-${HOME}/suwpptx}:/data:Z
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:6310/api/health"]
       interval: 5s
@@ -38,23 +27,4 @@ services:
       retries: 20
       start_period: 5s
 
-  web:
-    image: suwpptx-web:${IMAGE_TAG:-local}
-    build:
-      context: .
-      dockerfile: Suwpptx.Web/Dockerfile
-    environment:
-      API_UPSTREAM: ${API_UPSTREAM:-http://server:6310}
-    ports:
-      - "${WEB_PORT:-8200}:8080"
-    depends_on:
-      server:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
 
-volumes:
-  db-data:

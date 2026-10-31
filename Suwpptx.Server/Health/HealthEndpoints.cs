@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using Npgsql;
-using Suwpptx.Server.Database;
+using Suwpptx.Server.Folder;
 
 namespace Suwpptx.Server.Health;
 
@@ -8,27 +7,20 @@ internal static partial class HealthEndpoints
 {
     public static void MapHealth(this IEndpointRouteBuilder routes) => routes.MapGet("/health", Check);
 
-    private static async Task<Results<Ok<HealthStatus>, ProblemHttpResult>> Check(
-        Pool pool,
-        ILoggerFactory loggerFactory,
-        CancellationToken cancellationToken
-    )
+    private static Results<Ok<HealthStatus>, ProblemHttpResult> Check(RootFolder root, ILoggerFactory loggerFactory)
     {
-        try
+        var missing = new[] { root.Path, root.Templates, root.Workspaces }.FirstOrDefault(folder => !Directory.Exists(folder));
+        if (missing is null)
         {
-            await using var connection = await pool.OpenAsync(cancellationToken);
             return TypedResults.Ok(new HealthStatus("ok"));
         }
-        catch (NpgsqlException error)
-        {
-            DatabaseDoesNotAnswer(loggerFactory.CreateLogger("Suwpptx.Server.Health"), error);
-            return TypedResults.Problem(
-                detail: "The database does not answer: start it with `just db up`, or fix ConnectionStrings:Default.",
-                statusCode: StatusCodes.Status503ServiceUnavailable
-            );
-        }
+        FolderMissing(loggerFactory.CreateLogger("Suwpptx.Server.Health"), missing);
+        return TypedResults.Problem(
+            detail: $"The folder {missing} is missing: create it, or set SUWPPTX_ROOT to a folder you can write.",
+            statusCode: StatusCodes.Status503ServiceUnavailable
+        );
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The health check could not reach the database")]
-    private static partial void DatabaseDoesNotAnswer(ILogger logger, Exception error);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The health check found the folder {Folder} missing")]
+    private static partial void FolderMissing(ILogger logger, string folder);
 }

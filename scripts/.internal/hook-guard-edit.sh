@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Claude Code PreToolUse hook for Edit|Write (.claude/settings.json): refuses to change what must never be edited
-# by hand — a migration script that already exists (grate refuses to start on a changed one) and generated files
-# (lockfiles, the OpenAPI output) — and what an agent must not change on its own: the gate, the hooks and the lint
+# by hand — generated files (lockfiles, the OpenAPI output) — and what an agent must not change on its own: the gate, the hooks and the lint
 # configs, unless the owner started the session with ALLOW_GATE_EDIT=1. Exit 2 blocks the call and the message on
 # stderr goes back to the agent.
 set -euo pipefail
@@ -24,13 +23,6 @@ if [ "${ALLOW_GATE_EDIT:-}" != "1" ]; then
 fi
 
 case "$path" in
-    */Database/Migrations/up/*)
-        if [ -e "$path" ]; then
-            echo "Blocked: $path is a migration that already exists; grate refuses to start when a script changes after it ran." >&2
-            echo "Add a new numbered script instead: Suwpptx.Server/Database/Migrations/up/NNNN_what_it_does.sql (next free number)." >&2
-            exit 2
-        fi
-        ;;
     */packages.lock.json)
         echo "Blocked: $path is a generated lockfile. Change Directory.Packages.props and run: dotnet restore Suwpptx.slnx" >&2
         exit 2

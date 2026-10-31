@@ -16,20 +16,6 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:17.11
-        env:
-          POSTGRES_USER: suwpptx
-          POSTGRES_PASSWORD: suwpptx
-          POSTGRES_DB: suwpptx
-        ports:
-          - 5543:5432
-        options: >-
-          --health-cmd "pg_isready -U suwpptx -d suwpptx"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,26 +41,18 @@ jobs:
           echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  shellcheck.tar.xz" | sha256sum --check
           tar -xJf shellcheck.tar.xz
           sudo install shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+      - name: Install LibreOffice and poppler, so the preview tests render real slides
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress-nogui poppler-utils
+      - name: Install Claude Code (pinned), so the plugin test can run `claude plugin validate`
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash -s 2.1.316
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: The gate
         run: bash scripts/.internal/check.sh
 
   e2e:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:17.11
-        env:
-          POSTGRES_USER: suwpptx
-          POSTGRES_PASSWORD: suwpptx
-          POSTGRES_DB: suwpptx
-        ports:
-          - 5543:5432
-        options: >-
-          --health-cmd "pg_isready -U suwpptx -d suwpptx"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -89,6 +67,8 @@ jobs:
           cd Suwpptx.Web
           pnpm install --frozen-lockfile
           pnpm exec playwright install --with-deps chromium
+      - name: Install LibreOffice and poppler, so the app draws slide previews
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress-nogui poppler-utils
       - name: Browser tests
         run: bash scripts/.internal/e2e.sh
       - name: Keep the report
@@ -106,12 +86,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build both images, start the stack and smoke-test it (nothing is published, the registry is project-specific)
+        # The root folder is made by the runner's user first: a folder Docker creates for the bind mount belongs to root.
         run: |
-          docker compose --profile db up -d --build --wait
+          mkdir -p "$RUNNER_TEMP/suwpptx"
+          env SUWPPTX_ROOT="$RUNNER_TEMP/suwpptx" UID="$(id -u)" GID="$(id -g)" docker compose up -d --build --wait
           bash scripts/.internal/smoke.sh http://127.0.0.1:8200
       - name: Logs on failure
         if: failure()
-        run: docker compose --profile db logs
+        run: docker compose logs
       - name: Stop the stack
         if: always()
-        run: docker compose --profile db down --remove-orphans --volumes
+        run: docker compose down --remove-orphans

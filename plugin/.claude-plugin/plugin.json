@@ -1,0 +1,6 @@
+{
+  "name": "suwpptx",
+  "description": "Skills for Suwpptx Studio: build PowerPoint decks from a workspace folder (make), record requirements (brief) and read a deck's look (template).",
+  "version": "0.1.0",
+  "author": { "name": "Maniumek" }
+}

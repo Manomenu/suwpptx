@@ -1,28 +1,21 @@
 #!/usr/bin/env bash
-# End-to-end tests (Suwpptx.Web/src/**/*.e2e.ts): a real browser against the real server and database. Not part of
+# End-to-end tests (Suwpptx.Web/src/**/*.e2e.ts): a real browser against the real server and a real folder. Not part of
 # check.sh. Arguments go to Playwright, e.g.
 #   e2e.sh --headed        watch the browser
 #   e2e.sh -g "note"       only the tests whose name matches
 #
-# Every run starts from an empty database of its own (suwpptx_e2e; a linked worktree gets a suffixed name and its own
-# ports, checkout-env.sh), next to the development one, and its own server and web app (playwright.config.ts):
-# what you run by hand is not touched. Locally it starts PostgreSQL (db.sh up); CI provides it as a service.
+# Every run starts from an empty root folder of its own (.artifacts/e2e/root; a linked worktree has its own
+# .artifacts, and its own ports, checkout-env.sh) and its own server and web app (playwright.config.ts): the folder
+# you work on by hand is not touched. The server needs soffice and pdftoppm on PATH.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=scripts/.internal/checkout-env.sh
 source "$ROOT/scripts/.internal/checkout-env.sh"
 
-if [ -z "${CI:-}" ]; then
-    "$ROOT/scripts/.internal/db.sh" up >/dev/null
-fi
-
-# Two commands, not one: CREATE DATABASE cannot run inside the transaction a single -c would be.
-recreate=(-c "DROP DATABASE IF EXISTS $E2E_DATABASE WITH (FORCE)" -c "CREATE DATABASE $E2E_DATABASE")
-if [ -n "${CI:-}" ]; then
-    psql -q "postgresql://suwpptx:suwpptx@127.0.0.1:5543/postgres" "${recreate[@]}"
-else
-    "$ROOT/scripts/.internal/db.sh" psql -q -d postgres "${recreate[@]}"
-fi
+E2E_ROOT="$ROOT/.artifacts/e2e/root"
+rm -rf "$E2E_ROOT"
+mkdir -p "$E2E_ROOT"
+export E2E_ROOT
 
 mkdir -p "$ROOT/.artifacts/logs"
 dotnet build "$ROOT/Suwpptx.Server" --nologo -v q

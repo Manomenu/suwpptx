@@ -23,6 +23,27 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Uploads are raw request bodies of up to 2 GB (the server's Folder:UploadLimitMegabytes): streamed to the
+        # server as they arrive instead of being written to a temporary file in the web container first.
+        client_max_body_size 2g;
+        proxy_request_buffering off;
+    }
+
+    # Server-Sent Events: a buffered or cached response would reach the browser only when the stream ends, and the
+    # default read timeout would cut a quiet stream after a minute.
+    location = /api/changes {
+        resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
+        set $api_upstream ${API_UPSTREAM};
+        proxy_pass $api_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 2g;
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 1h;
     }
 
     location /assets/ {

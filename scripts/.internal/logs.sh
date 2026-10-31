@@ -48,7 +48,7 @@ fi
 
 if [ "$compose" -eq 1 ]; then
     source_name="docker compose logs server"
-    read_lines() { (cd "$ROOT" && docker compose --profile db logs --no-log-prefix --no-color server 2>&1); }
+    read_lines() { (cd "$ROOT" && docker compose logs --no-log-prefix --no-color server 2>&1); }
 else
     if [ -z "$file" ]; then
         file="$(ls -t "$ROOT"/.artifacts/logs/*.jsonl 2>/dev/null | head -n 1 || true)"
