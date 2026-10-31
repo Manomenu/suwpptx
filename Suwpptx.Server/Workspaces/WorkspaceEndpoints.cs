@@ -39,6 +39,10 @@ internal static class WorkspaceEndpoints
         {
             return Conflict(name);
         }
+        if (SameNameInOtherCase(root, name) is { } other)
+        {
+            return CaseConflict(other);
+        }
         WorkspaceFolder.Create(directory);
         return TypedResults.Created($"/api/workspaces/{Uri.EscapeDataString(name)}", WorkspaceFolder.Summary(directory));
     }
@@ -67,6 +71,10 @@ internal static class WorkspaceEndpoints
         if (Directory.Exists(target))
         {
             return Conflict(newName);
+        }
+        if (SameNameInOtherCase(root, newName, except: name) is { } other)
+        {
+            return CaseConflict(other);
         }
         Directory.Move(directory, target);
         return TypedResults.Ok(WorkspaceFolder.Summary(target));
@@ -147,6 +155,19 @@ internal static class WorkspaceEndpoints
 
     private static ProblemHttpResult Conflict(string name) =>
         TypedResults.Problem(detail: $"A workspace named {name} exists: pick another name.", statusCode: StatusCodes.Status409Conflict);
+
+    // Why: Windows sees Q3 and q3 as one folder, so the same two names are refused on every OS and a workspace never breaks when it moves between systems
+    private static string? SameNameInOtherCase(RootFolder root, string name, string? except = null) =>
+        new DirectoryInfo(root.Workspaces)
+            .EnumerateDirectories()
+            .Select(directory => directory.Name)
+            .FirstOrDefault(existing => string.Equals(existing, name, StringComparison.OrdinalIgnoreCase) && existing != except);
+
+    private static ProblemHttpResult CaseConflict(string existing) =>
+        TypedResults.Problem(
+            detail: $"A workspace named {existing} exists (names differ only in case): pick another name.",
+            statusCode: StatusCodes.Status409Conflict
+        );
 
     private static ProblemHttpResult Unprocessable(string problem) =>
         TypedResults.Problem(detail: problem, statusCode: StatusCodes.Status422UnprocessableEntity);

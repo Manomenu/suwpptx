@@ -41,8 +41,8 @@ jobs:
           echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  shellcheck.tar.xz" | sha256sum --check
           tar -xJf shellcheck.tar.xz
           sudo install shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
-      - name: Install LibreOffice and poppler, so the preview tests render real slides
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress-nogui poppler-utils
+      - name: Install LibreOffice, so the preview tests render real slides
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress-nogui
       - name: Install Claude Code (pinned), so the plugin test can run `claude plugin validate`
         run: |
           curl -fsSL https://claude.ai/install.sh | bash -s 2.1.316
@@ -67,8 +67,8 @@ jobs:
           cd Suwpptx.Web
           pnpm install --frozen-lockfile
           pnpm exec playwright install --with-deps chromium
-      - name: Install LibreOffice and poppler, so the app draws slide previews
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress-nogui poppler-utils
+      - name: Install LibreOffice, so the app draws slide previews
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress-nogui
       - name: Browser tests
         run: bash scripts/.internal/e2e.sh
       - name: Keep the report
@@ -97,3 +97,112 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose down --remove-orphans
+
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Build both release zips
+        run: |
+          bash scripts/.internal/package.sh win-x64
+          bash scripts/.internal/package.sh linux-x64
+      - name: Keep the win-x64 zip for the windows job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: suwpptx-win-x64
+          path: .artifacts/release/suwpptx-win-x64.zip
+          if-no-files-found: error
+      - name: Keep the linux-x64 zip
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: suwpptx-linux-x64
+          path: .artifacts/release/suwpptx-linux-x64.zip
+          if-no-files-found: error
+
+  windows:
+    needs: [package]
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        # Git Bash: install.sh and start-app.sh are bash scripts, the way a Windows user runs them.
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Download the win-x64 zip built by the package job
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: suwpptx-win-x64
+          path: release
+      - name: Install LibreOffice (the app draws previews with it)
+        run: choco install libreoffice-fresh -y --no-progress
+      - name: Install Claude Code (pinned), so install.sh can enable the plugin
+        shell: pwsh
+        run: |
+          & ([scriptblock]::Create((irm https://claude.ai/install.ps1))) 2.1.316
+          Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.local\bin"
+      - name: Install the app with install.sh, the way a user does
+        run: |
+          set -uo pipefail
+          claude --version
+          export SUWPPTX_APP_ZIP
+          SUWPPTX_APP_ZIP="$(cygpath -u "$GITHUB_WORKSPACE/release/suwpptx-win-x64.zip")"
+          export SUWPPTX_MARKETPLACE="$PWD"
+          export SUWPPTX_NO_SHORTCUT=1
+          bash install.sh 2>&1 | tee "$RUNNER_TEMP/install.log"
+          code="${PIPESTATUS[0]}"
+          # 3 = Python is missing, which this job does not need; any other non-zero code is a failure.
+          if [ "$code" != 0 ] && [ "$code" != 3 ]; then
+              echo "install.sh exited with $code" >&2
+              exit 1
+          fi
+          if grep -Eiq 'libreoffice.*(missing|not found)|(missing|not found).*libreoffice' "$RUNNER_TEMP/install.log"; then
+              echo "install.sh did not find the LibreOffice that choco installed" >&2
+              exit 1
+          fi
+      - name: Start the app with the plugin's start hook and render a deck
+        run: |
+          set -euo pipefail
+          # install.sh puts the app into the plugin's data folder: ~/.claude/plugins/data/<plugin>-<marketplace>/
+          data_parent="$HOME/.claude/plugins/data"
+          exe="$(find "$data_parent" -name 'suwpptx.exe' -print -quit)"
+          [ -n "$exe" ] || { echo "suwpptx.exe is not under $data_parent" >&2; find "$HOME/.claude" -maxdepth 4 >&2; exit 1; }
+          data="$data_parent/$(echo "${exe#"$data_parent"/}" | cut -d/ -f1)"
+          # Why: the app writes its log into the plugin data folder; it is printed when anything below fails.
+          trap 'echo "--- app log ---"; find "$data" -name "*.log" -o -name "*.jsonl" | while read -r f; do echo "# $f"; tail -n 60 "$f"; done' ERR
+          mkdir -p "$HOME/suwpptx"
+          export CLAUDE_PLUGIN_DATA="$data" CLAUDE_PROJECT_DIR="$HOME/suwpptx" SUWPPTX_NO_BROWSER=1
+          bash plugin/scripts/start-app.sh
+          for _ in $(seq 1 60); do
+              curl -fsS http://localhost:6310/api/health >/dev/null 2>&1 && break
+              sleep 2
+          done
+          curl -fsS http://localhost:6310/api/health
+          echo
+          curl -fsS http://localhost:6310/ | grep -qi '<title>suwpptx</title>'
+          versions="$HOME/suwpptx/workspaces/smoke/versions"
+          mkdir -p "$versions"
+          cp Suwpptx.Server.Tests/Previews/Decks/three-slides.pptx "$versions/v1.pptx"
+          previews="$versions/v1-previews"
+          for _ in $(seq 1 60); do
+              [ -f "$previews/done.json" ] && break
+              if [ -f "$previews/error.txt" ]; then cat "$previews/error.txt" >&2; exit 1; fi
+              sleep 2
+          done
+          [ -f "$previews/done.json" ] || { echo "no done.json in $previews after 120 s" >&2; exit 1; }
+          cat "$previews/done.json"; echo
+          for png in 01.png 02.png 03.png; do
+              [ -s "$previews/$png" ] || { echo "$png is missing in $previews" >&2; exit 1; }
+          done
+          grep -Eq '"slides"[[:space:]]*:[[:space:]]*3' "$previews/done.json"

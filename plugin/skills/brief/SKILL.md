@@ -8,7 +8,7 @@ argument-hint: "<workspace> <what to record>"
 
 Arguments: `$ARGUMENTS` is the workspace name, then what to record.
 
-1. Root: env var `SUWPPTX_ROOT`, else `~/suwpptx`. Workspace: `<root>/workspaces/<name>/`.
+1. Root: the session's folder when it holds `templates/` and `workspaces/` (sessions start in `~/suwpptx`), else `${SUWPPTX_ROOT:-$HOME/suwpptx}`. Workspace: `<root>/workspaces/<name>/`.
 2. When the folder does not exist, confirm the name with the owner, then create it with `resources/`, `versions/` and this `context.md`:
 
 ```markdown

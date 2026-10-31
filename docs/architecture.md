@@ -18,7 +18,8 @@ lines: a new top-level folder needs its line here, a deleted one loses it.
 - `docs/` — documentation for people working on the repo: this map, `development.md`, the specs in `visual/spec/` (their acceptance criteria live as guardrails, see AGENTS.md).
 - `scripts/` — `scripts/.internal/` holds what the gate, the hooks and `just` run: `check.sh`, `checkout-env.sh`, `api-types.sh`, `e2e.sh`, `smoke.sh`, `logs.sh`, `criteria.sh`, the Claude Code hook scripts.
 - `.claude/` — the committed Claude Code settings: a Stop hook that runs the quick gate, a PreToolUse hook that protects generated files, lockfiles, and the gate with the lint configs (`ALLOW_GATE_EDIT=1 claude` lifts the last).
-- `plugin/` — the Claude Code plugin `suwpptx` (skills `make`, `brief`, `template` in `skills/*/SKILL.md`); `claude plugin validate ./plugin` checks it.
+- `plugin/` — the Claude Code plugin `suwpptx`: skills `make`, `brief`, `template`; a SessionStart hook (in `plugin.json`) runs `scripts/start-app.sh`; `scripts/python.sh` finds Python with pptx. `claude plugin validate ./plugin` checks it.
+- `install.sh` — user install for Windows (Git Bash) and Linux: the root folder, the plugin at project scope, the app in the plugin's data folder, the shortcut, a LibreOffice and Python check; attached to each release.
 - `.claude-plugin/` — `marketplace.json`: the marketplace `suwpptx` that lists the plugin from `./plugin`.
 - `.config/` — `dotnet-tools.json`: the pinned CSharpier.
 

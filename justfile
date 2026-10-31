@@ -47,6 +47,11 @@ up:
 down:
     docker compose down --remove-orphans
 
+# Build the release zip for an OS into .artifacts/release/ (rid: win-x64 or linux-x64): the executable, wwwroot/ and VERSION
+[group('dev')]
+package rid:
+    @./scripts/.internal/package.sh {{ rid }}
+
 # Regenerate the web app's TypeScript types from the server's OpenAPI document (after changing a record the API sends or receives)
 [group('dev')]
 api-types:

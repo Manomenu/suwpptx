@@ -8,6 +8,12 @@ internal static class FolderNames
 
     private static readonly SearchValues<char> Forbidden = SearchValues.Create("/\\:*?\"<>|\0");
 
+    // Why: Windows treats these as devices whatever the extension, so a name that works on Linux would fail when the folder is used on Windows
+    private static readonly HashSet<string> Reserved = new(
+        ["CON", "PRN", "AUX", "NUL", .. Enumerable.Range(1, 9).SelectMany(number => new[] { $"COM{number}", $"LPT{number}" })],
+        StringComparer.OrdinalIgnoreCase
+    );
+
     public static string? ProblemWith(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -28,7 +34,16 @@ internal static class FolderNames
         }
         if (name != name.Trim())
         {
-            return "Use a name without spaces at the start or the end.";
+            return "Pick another name: it can't start or end with a space (Windows drops them).";
+        }
+        if (name.EndsWith('.'))
+        {
+            return "Pick another name: Windows doesn't allow a name that ends in a dot.";
+        }
+        var stem = name.Split('.')[0].TrimEnd(' ');
+        if (Reserved.Contains(stem))
+        {
+            return $"Pick another name: Windows reserves {stem.ToUpperInvariant()}, also with an extension.";
         }
         return null;
     }

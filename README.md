@@ -13,6 +13,18 @@ version in your browser. Everything is plain files in `~/suwpptx` (or `SUWPPTX_R
   <img alt="The workspace screen: resources on the left (context.md, data, photos, decks), the current slide large in the middle with Previous and Next and a thumbnail strip, a version picker and a Download .pptx button at the top." src="docs/visual/board/img/readme/app-light.png" width="100%">
 </picture>
 
+## Install with Claude Code
+
+Tell Claude Code: **install Manomenu/suwpptx**. Claude runs the install script (you can paste it yourself in a terminal, Git Bash on Windows):
+
+```sh
+curl -fsSL https://github.com/Manomenu/suwpptx/releases/latest/download/install.sh | bash
+```
+
+It creates `~/suwpptx`, installs the plugin there and the ready-made app, and adds a "Suwpptx Studio" shortcut. Claude asks before it installs
+LibreOffice and Python (python-pptx). Then open Suwpptx Studio from the shortcut, or run `cd ~/suwpptx && claude`: the app starts by itself
+at http://localhost:6310. The plugin is on only in `~/suwpptx`; start Claude Code there, not in a subfolder. Run the same request again to update.
+
 ## How it works
 
 <picture>
@@ -23,7 +35,9 @@ version in your browser. Everything is plain files in `~/suwpptx` (or `SUWPPTX_R
 There is no database and no API for the agent: Claude Code reads and writes the folder with its own tools, and
 the app watches the same folder.
 
-## Get started
+## Develop
+
+The developer path: clone the repository and run the app from source.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/start-dark.png">
