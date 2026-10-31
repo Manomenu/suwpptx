@@ -2,6 +2,10 @@
   <PropertyGroup>
     <RootNamespace>Suwpptx.Server</RootNamespace>
     <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+    <!-- Why: package.sh publishes single-file apps for these runtimes; declaring them (and the single-file analyzer,
+         which brings ILLink.Tasks) here keeps one lock file for build and publish, as CI restores in locked mode -->
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
   </PropertyGroup>
 
   <ItemGroup>
