@@ -2,9 +2,9 @@
 # Builds the release zip of the app for one OS: package.sh <win-x64|linux-x64> [<out dir>]   (default .artifacts/release)
 # Result: <out>/suwpptx-<rid>.zip holding, at its root, `suwpptx` (Linux) or `suwpptx.exe` (Windows), `wwwroot/` (the built
 # web app, which the server serves) and `VERSION` (the tag without the leading v, or 0.0.0-dev+<short sha>).
-# install.sh and the plugin's start hook rely on exactly this layout. The executable is one self-contained file: the
-# .NET runtime and the native PDFium library are inside it (IncludeNativeLibrariesForSelfExtract; the library is
-# unpacked into the user's temp folder at the first start). Needs dotnet, pnpm and zip.
+# install.sh and the plugin's start hook rely on exactly this layout. The app is self-contained (the .NET runtime and
+# the native PDFium library sit next to the executable), so users install no .NET. Not single-file: that pulls in an
+# ILLink package whose version follows the SDK patch, and CI's locked restore then fails. Needs dotnet, pnpm and zip.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -41,17 +41,18 @@ cd "$ROOT/Suwpptx.Web"
 pnpm build
 
 dotnet publish "$ROOT/Suwpptx.Server" -c Release -r "$RID" --self-contained true \
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
     -o "$WORK/publish" --nologo -v q
 
 STAGE="$WORK/stage"
 mkdir -p "$STAGE"
-cp "$WORK/publish/$PUBLISHED" "$STAGE/$EXE"
+cp -r "$WORK/publish/." "$STAGE/"
+find "$STAGE" -name '*.pdb' -delete
+mv "$STAGE/$PUBLISHED" "$STAGE/$EXE"
 chmod +x "$STAGE/$EXE"
 cp -r "$ROOT/Suwpptx.Web/dist" "$STAGE/wwwroot"
 printf '%s\n' "$VERSION" >"$STAGE/VERSION"
 
 ZIP="$OUT/suwpptx-$RID.zip"
 rm -f "$ZIP"
-(cd "$STAGE" && zip -q -r "$ZIP" "$EXE" wwwroot VERSION)
+(cd "$STAGE" && zip -q -r "$ZIP" .)
 echo "package.sh: $ZIP (version $VERSION, $(du -h "$ZIP" | cut -f1))"

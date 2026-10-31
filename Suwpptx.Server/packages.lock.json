@@ -23,12 +23,6 @@
         "resolved": "10.0.12",
         "contentHash": "Z/bU4AL/E4m0j5tduRjIuqZrVMK//wRAM+iq+UcQtjQuEMwBnMY8AQ+MvK4IQZAdKb5Zlk9PUglfsN53xOmU3A=="
       },
-      "Microsoft.NET.ILLink.Tasks": {
-        "type": "Direct",
-        "requested": "[10.0.13, )",
-        "resolved": "10.0.13",
-        "contentHash": "EasWS8Q1XPCpGQpH0VTs/vI1s/pworiz+wiS6yDWuGHO1FvGun7cVZBIfFv2sFtG9M63wRhepMswIKDae8XgQg=="
-      },
       "PDFtoImage": {
         "type": "Direct",
         "requested": "[5.4.0, )",

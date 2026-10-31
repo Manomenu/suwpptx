@@ -38,24 +38,19 @@ public sealed partial class ReleaseWorkflowTests
         var script = RepositoryFiles.Read("scripts/.internal/package.sh");
 
         foreach (
-            var rule in new[]
-            {
-                "suwpptx.exe",
-                "EXE=\"suwpptx\"",
-                "PublishSingleFile=true",
-                "--self-contained true",
-                "IncludeNativeLibrariesForSelfExtract=true",
-            }
+            var rule in new[] { "suwpptx.exe", "EXE=\"suwpptx\"", "--self-contained true", "mv \"$STAGE/$PUBLISHED\" \"$STAGE/$EXE\"" }
         )
         {
             Assert.True(
                 script.Contains(rule, StringComparison.Ordinal),
-                $"package.sh must contain `{rule}`: install.sh and the start hook expect one self-contained executable named suwpptx or suwpptx.exe"
+                $"package.sh must contain `{rule}`: install.sh and the start hook expect a self-contained app whose executable is named suwpptx or suwpptx.exe"
             );
         }
         Assert.True(
-            script.Contains("zip -q -r \"$ZIP\" \"$EXE\" wwwroot VERSION", StringComparison.Ordinal),
-            "package.sh must zip exactly `$EXE wwwroot VERSION` from the staging folder, so they sit at the zip root"
+            script.Contains("(cd \"$STAGE\" && zip -q -r \"$ZIP\" .)", StringComparison.Ordinal)
+                && script.Contains("cp -r \"$ROOT/Suwpptx.Web/dist\" \"$STAGE/wwwroot\"", StringComparison.Ordinal)
+                && script.Contains("\"$STAGE/VERSION\"", StringComparison.Ordinal),
+            "package.sh must stage the app, wwwroot/ and VERSION in one folder and zip that folder's contents, so they sit at the zip root"
         );
     }
 
