@@ -186,14 +186,15 @@ jobs:
           trap 'echo "--- app log ---"; find "$data" -name "*.log" -o -name "*.jsonl" | while read -r f; do echo "# $f"; tail -n 60 "$f"; done' ERR
           mkdir -p "$HOME/suwpptx"
           export CLAUDE_PLUGIN_DATA="$data" CLAUDE_PROJECT_DIR="$HOME/suwpptx" SUWPPTX_NO_BROWSER=1
-          bash plugin/scripts/start-app.sh
+          # Why: the hook must return within seconds; a start that holds its output open would otherwise hang the job
+          timeout 10 bash plugin/scripts/start-app.sh
           for _ in $(seq 1 60); do
-              curl -fsS http://localhost:6310/api/health >/dev/null 2>&1 && break
+              curl -fsS -m 5 http://localhost:6310/api/health >/dev/null 2>&1 && break
               sleep 2
           done
-          curl -fsS http://localhost:6310/api/health
+          curl -fsS -m 10 http://localhost:6310/api/health
           echo
-          curl -fsS http://localhost:6310/ | grep -qi '<title>suwpptx</title>'
+          curl -fsS -m 10 http://localhost:6310/ | grep -qi '<title>suwpptx</title>'
           versions="$HOME/suwpptx/workspaces/smoke/versions"
           mkdir -p "$versions"
           cp Suwpptx.Server.Tests/Previews/Decks/three-slides.pptx "$versions/v1.pptx"

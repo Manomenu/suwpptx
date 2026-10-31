@@ -31,10 +31,12 @@ fi
 
 port_url="${url%/}"
 if [ "$windows" = 1 ]; then
-  # Why: Start-Process makes a process of its own, not a child of this shell, so it outlives the hook; -PassThru gives its Windows PID for taskkill.
-  SUWPPTX_ROOT="$(cygpath -w "$project")" ASPNETCORE_URLS="$port_url" APP_EXE="$(cygpath -w "$exe")" APP_LOG="$(cygpath -w "$data/app.log")" APP_ERR="$(cygpath -w "$data/app.err.log")" \
-    powershell -NoProfile -Command '(Start-Process -FilePath $env:APP_EXE -WindowStyle Hidden -PassThru -RedirectStandardOutput $env:APP_LOG -RedirectStandardError $env:APP_ERR).Id' \
-    | tr -d '\r' > "$data/app.pid"
+  # Why: Start-Process makes a process of its own, not a child of this shell, so it outlives the hook. It also inherits
+  # PowerShell's handles: PowerShell must get no pipe (stdio to NUL, PID written to a file), or the app holds the
+  # hook's output open and Claude Code waits for it forever.
+  SUWPPTX_ROOT="$(cygpath -w "$project")" ASPNETCORE_URLS="$port_url" APP_EXE="$(cygpath -w "$exe")" APP_LOG="$(cygpath -w "$data/app.log")" APP_ERR="$(cygpath -w "$data/app.err.log")" APP_PID="$(cygpath -w "$data/app.pid")" \
+    powershell -NoProfile -NonInteractive -Command '$p = Start-Process -FilePath $env:APP_EXE -WindowStyle Hidden -PassThru -RedirectStandardOutput $env:APP_LOG -RedirectStandardError $env:APP_ERR; Set-Content -Path $env:APP_PID -Value $p.Id -NoNewline -Encoding ascii' \
+    < /dev/null > /dev/null 2>&1
 else
   launcher=(nohup)
   command -v setsid > /dev/null 2>&1 && launcher=(setsid nohup)
