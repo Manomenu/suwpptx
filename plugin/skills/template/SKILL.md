@@ -8,8 +8,8 @@ argument-hint: "<deck>"
 
 Argument: `$ARGUMENTS`, the deck (a file name or path).
 
-1. Root: env var `SUWPPTX_ROOT`, else `~/suwpptx`. Find the deck in `<root>/templates/`, in a workspace's `resources/` or `versions/`. When several match or none, list the candidates and ask.
-2. Check `python3 -c "import pptx"`; when it fails, tell the owner to run `python3 -m pip install --user python-pptx` (or use a venv) and stop.
+1. Root: the session's folder when it holds `templates/` and `workspaces/` (sessions start in `~/suwpptx`), else `${SUWPPTX_ROOT:-$HOME/suwpptx}`. Find the deck in `<root>/templates/`, in a workspace's `resources/` or `versions/`. When several match or none, list the candidates and ask.
+2. Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/python.sh"` once. It prints the Python command that can import pptx (`python3`, `python` or `py -3`): use that output as the Python command below. When it fails, show its output (install commands included) to the owner, ask before running them, and stop.
 3. Write a short script in a temp dir (`mktemp -d`, never in the root folder). A `.potx` first becomes a `.pptx`: copy it and in the zip change `[Content_Types].xml` main content type from `presentationml.template.main+xml` to `presentationml.presentation.main+xml`. The script extracts:
    - slide size (EMU converted to inches and the aspect ratio);
    - theme colours (the `a:clrScheme` of the theme part XML: dk1, lt1, dk2, lt2, accent1 to accent6, hlink);

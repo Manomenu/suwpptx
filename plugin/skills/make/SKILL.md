@@ -10,10 +10,10 @@ Argument: the workspace name (`$ARGUMENTS`). Everything happens on files in the 
 
 ## 1. Find the workspace
 
-1. Root: the env var `SUWPPTX_ROOT`, else `~/suwpptx`. Check with `echo "${SUWPPTX_ROOT:-$HOME/suwpptx}"`.
+1. Root: the session's folder when it holds `templates/` and `workspaces/` (sessions start in `~/suwpptx`), else `${SUWPPTX_ROOT:-$HOME/suwpptx}`. Check with `pwd; ls`.
 2. Workspace: `<root>/workspaces/<name>/`. When the name is missing or matches none or several folders, list `<root>/workspaces/` and ask which one.
 3. Read `context.md` (audience, goal, must include, style, slide limits). Names starting with `.` are the app's own files: ignore them.
-4. Look at every file in `resources/` (subfolders too): images with Read, text and code with Read, data files (csv, xlsx) by reading them with Python, other decks by their text. Note which resources belong on which slide.
+4. Look at every file in `resources/` (subfolders too): images with Read, text and code with Read, data files (csv, xlsx) by reading them with that Python, other decks by their text. Note which resources belong on which slide.
 
 ## 2. Pick the style source
 
@@ -24,7 +24,7 @@ Argument: the workspace name (`$ARGUMENTS`). Everything happens on files in the 
 
 ## 3. Check the tooling
 
-Run `python3 -c "import pptx"`. When it fails, tell the owner to run `python3 -m pip install --user python-pptx` (or install it in a venv) and stop.
+Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/python.sh"` once. It prints the Python command that can import pptx (`python3`, `python` or `py -3`): use that output wherever this skill says Python. When it fails, show its output (install commands included) to the owner, ask before running them, and stop.
 
 ## 4. Build
 
@@ -50,7 +50,7 @@ The app writes `versions/v<N>-previews/` with `01.png`, `02.png`, ... and then `
 2. `error.txt`: report the reason, fix the deck, save the next version.
 3. `done.json`: Read every PNG. Look for overflowing or clipped text, overlaps, empty placeholders, unreadable text or contrast, and consistency with the template.
 4. Anything wrong: fix it and save the next version (steps 4 to 6). At most 3 rounds, then report what is left.
-5. No previews ever appear: say the app may not be running (start it with `just server` and `just web`, or `just up`; see `docs/development.md` in the Suwpptx repository) and still report the file.
+5. No previews ever appear: say the app may not be running (it starts with a new Claude Code session in the root folder; if Suwpptx Studio is not installed, ask Claude to install Manomenu/suwpptx) and still report the file.
 
 ## 7. Report
 

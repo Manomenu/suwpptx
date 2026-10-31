@@ -6,7 +6,7 @@
 - A POSIX shell: on Windows use **Git Bash** (the scripts in `scripts/.internal/` are bash; run
   them with `bash scripts/.internal/check.sh`). Agents call the scripts directly, humans use `just`.
 - Node 24 and pnpm 11 (`corepack enable`), for `Suwpptx.Web`; once per machine `pnpm exec playwright install chromium` in `Suwpptx.Web/` for the browser tests.
-- LibreOffice Impress and poppler-utils: the server draws slide previews with them (Fedora: `sudo dnf install libreoffice-impress poppler-utils`).
+- LibreOffice Impress: the server draws slide previews with it (Fedora: `sudo dnf install libreoffice-impress`).
 - Python 3 with python-pptx (`python3 -m pip install --user python-pptx`) and Claude Code: the skills that Claude runs build the decks.
 - For the full gate: `shellcheck` and `gitleaks`. A missing tool is reported as SKIP (a failure
   in CI), and the report ends with `NOT VERIFIED: <steps>`.
@@ -30,6 +30,13 @@ just fmt                  # CSharpier and Prettier
 The same without `just`: `bash scripts/.internal/check.sh --quick`, `bash scripts/.internal/check.sh`.
 
 `just` lists every recipe; run it to see the exact names for starting the app in development (server and web).
+
+## Releases
+
+Push a tag `vX.Y.Z` and the `release` workflow builds `suwpptx-win-x64.zip` and `suwpptx-linux-x64.zip`
+(the executable, `wwwroot/`, `VERSION`) with `scripts/.internal/package.sh`, then publishes a GitHub release with both
+zips and `install.sh`. `just package linux-x64` builds the same zip locally into `.artifacts/release/`. CI builds both
+zips on every push and installs the Windows one on a Windows runner (job `windows`).
 
 ## The root folder
 

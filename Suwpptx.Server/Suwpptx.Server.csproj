@@ -2,11 +2,15 @@
   <PropertyGroup>
     <RootNamespace>Suwpptx.Server</RootNamespace>
     <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+    <!-- Why: package.sh publishes for these runtimes; declaring them here keeps one lock file for build and publish,
+         as CI restores in locked mode -->
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" />
+    <PackageReference Include="PDFtoImage" />
   </ItemGroup>
 
   <ItemGroup>
