@@ -14,7 +14,7 @@ Areas: not used until a second product area appears — how to add them:
 | `scripts/.internal/check.sh` | before calling a change done: quick, plus prettier, knip, API types, acceptance criteria, compose config, shellcheck, gitleaks |
 | `scripts/.internal/e2e.sh` | after changing anything a user clicks: Playwright against a real server and its own database (not in the gate) |
 | `scripts/.internal/logs.sh` (`just logs`) | why did it fail? the last warnings and errors of the newest server log, one line each; `--trace <id>` takes the `traceId` of an error response, `--all`, `--compose`, `-n N` |
-| `scripts/.internal/criteria.sh [AC-<feature>-<n>]` (`just criteria`) | which guardrails keep each acceptance criterion true: id, kind, file:line; fails on an unguarded criterion (the full gate runs it, not `--quick`) |
+| `scripts/.internal/criteria.sh [AC-<feature>-<n>]` (`just criteria`) | which guardrails keep each acceptance criterion true: id, kind, file:line; fails on an unguarded criterion (the full gate runs it, not `--quick`); `just criteria-update` moves the pinned tool to its newest version |
 | `scripts/.internal/api-types.sh` | after changing a record the API exposes: regenerates `openapi.d.ts` (never edit it) |
 | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5543` (container `suwpptx-postgres`) |
 | `just fmt` | fix formatting: CSharpier and Prettier |
@@ -83,10 +83,18 @@ test. Not as a checklist, a QA note or a comment. The guardrail names the id whe
 | `banned API` | `BannedSymbols.txt` | the id in the message: `P:…;AC-notes-1 use …` |
 | `build rule` | `Directory.Build.props` | `<!-- AC-notes-1 -->` above the property |
 
-`criteria.sh` lists each criterion with every guardrail, its kind and file:line, and fails on a criterion no guardrail
+`criteria.sh` runs the suwagent plugin's `vdoc.py criteria`, pinned by commit and SHA-256: it lists
+each criterion with every guardrail, its kind and file:line, and fails on a criterion no guardrail
 names, an id no spec defines, an id where the gate checks nothing, and a spec that breaks the
 format above (no section, a criterion without an id or with two, an id defined twice). Files ignored
-by git are not read. A new kind is a line in its `case`, a row here and in the README.
+by git are not read. The kinds are `criteria.json`; a new kind is an entry there and a row in both
+tables. `just criteria-update` moves the pin to the plugin's newest version.
+
+The hook `hook-guard-edit.sh` refuses an agent's edit of the gate and the lint configs (`check.sh`,
+`criteria.sh`, `criteria.json`, the hook scripts, `.claude/settings.json`, `.github/workflows/`,
+`.editorconfig`, `eslint.config.js`, `BannedSymbols.txt`, `Directory.Build.props`, `tsconfig*.json`).
+When a change needs one, ask the owner to start a session with `ALLOW_GATE_EDIT=1 claude` and give
+them the exact change to make there.
 
 - A criterion no automated check can prove is a wrong criterion, not a missing test. Ask the owner
   whether it becomes plain description in the spec or leaves the spec; never keep it unguarded.

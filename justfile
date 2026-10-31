@@ -28,6 +28,11 @@ logs *args:
 criteria *args:
     @./scripts/.internal/criteria.sh "$@"
 
+# Move the pinned vdoc.py of the acceptance criteria check to the suwagent plugin's newest master
+[group('run')]
+criteria-update:
+    @./scripts/.internal/criteria.sh --update
+
 # Web UI on :3310, proxies /api to the server — run `just server` alongside
 [group('run')]
 web *args:

@@ -109,6 +109,14 @@ if [ "$QUICK" -eq 0 ]; then
     docker compose version >/dev/null 2>&1 || SKIPPED[compose]="docker compose not installed"
     command -v shellcheck >/dev/null 2>&1 || SKIPPED[shellcheck]="shellcheck not installed"
     command -v gitleaks >/dev/null 2>&1 || SKIPPED[gitleaks]="gitleaks not installed"
+    if ! command -v python3 >/dev/null 2>&1; then
+        SKIPPED[criteria]="python3 not installed"
+    else
+        fetched=0
+        "$ROOT/scripts/.internal/criteria.sh" --fetch >/dev/null 2>&1 || fetched=$?
+        # Why: only a missing download is a SKIP; a checksum mismatch runs the step, which fails and says why
+        if [ "$fetched" -eq 3 ]; then SKIPPED[criteria]="the pinned vdoc.py cannot be downloaded (no network?)"; fi
+    fi
 fi
 
 if command -v pnpm >/dev/null 2>&1; then

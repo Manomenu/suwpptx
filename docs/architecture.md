@@ -18,11 +18,11 @@ lines: a new top-level folder needs its line here, a deleted one loses it.
 - `.githooks/` — `pre-commit` runs gitleaks on what is being committed; `just sync` enables it.
 - `docs/` — documentation for people working on the repo: this map, `development.md`, the specs in `visual/spec/` (their acceptance criteria live as guardrails, see AGENTS.md).
 - `scripts/` — `scripts/.internal/` holds what the gate, the hooks and `just` run: `check.sh`, `db.sh`, `checkout-env.sh`, `api-types.sh`, `e2e.sh`, `smoke.sh`, `logs.sh`, `criteria.sh`, the Claude Code hook scripts.
-- `.claude/` — the committed Claude Code settings: a Stop hook that runs the quick gate, a PreToolUse hook that protects migrations and generated files.
+- `.claude/` — the committed Claude Code settings: a Stop hook that runs the quick gate, a PreToolUse hook that protects migrations, generated files, and the gate with the lint configs (`ALLOW_GATE_EDIT=1 claude` lifts the last).
 - `.config/` — `dotnet-tools.json`: the pinned CSharpier.
 - `.just/` — modules of the `justfile` (`just db`).
 
-Files at the root: `Directory.Build.props` (strict compiler and analyzers), `Directory.Build.rsp`
+Files at the root: `criteria.json` (the kinds of guardrail the acceptance criteria check knows), `Directory.Build.props` (strict compiler and analyzers), `Directory.Build.rsp`
 (no idle MSBuild workers), `Directory.Packages.props` (every package version, once),
 `BannedSymbols.txt` (APIs the build refuses, each with what to use instead), `.editorconfig`
 (every disabled rule has its reason), `global.json`, `nuget.config`, `.gitattributes`, `.gitignore`.
@@ -49,7 +49,7 @@ Each line is a build rule or a test; its message says the fix. Rules live as low
 - Escape hatches (`EscapeHatchTests`): no `dynamic`; a `!` needs a `// Why:` on its line or the one above.
 - Comments (`CommentsTests`): only `// Why: ...` and tool markers; no TODO, FIXME, workaround or commented-out code; XML docs only in a `*.Contracts` project.
 - Settings (`AppSettingsTests`): every section of appsettings is bound by an options class.
-- Acceptance criteria (`check.sh` without `--quick` runs `criteria.sh`, `CriteriaScriptTests` tests it): each spec in `docs/visual/spec/` has an acceptance section with one unique `AC-<feature>-<n>` per criterion, each is named by a guardrail of a known kind, every id a guardrail names is in a spec, no id stands where the gate checks nothing.
+- Acceptance criteria (`check.sh` without `--quick` runs `criteria.sh`: the suwagent plugin's `vdoc.py criteria`, pinned, with the kinds of `criteria.json`; `CriteriaKindsTests` keeps each kind in README and AGENTS.md): each spec in `docs/visual/spec/` has an acceptance section with one unique `AC-<feature>-<n>` per criterion, each is named by a guardrail of a known kind, every id a guardrail names is in a spec, no id stands where the gate checks nothing.
 - Docs (`AgentsFileTests`, `RepositoryLayoutTests`): AGENTS.md at most 150 lines, no tree drawings, no capitals shouting; CLAUDE.md is `@AGENTS.md`; every top-level folder is in the map above.
 - The gate itself (`check.sh`): a ceiling per step, a WARN when the quick gate passes 60 s.
 
